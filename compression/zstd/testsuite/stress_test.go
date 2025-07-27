@@ -231,7 +231,8 @@ func TestMemoryStress(t *testing.T) {
 			var memEnd runtime.MemStats
 			runtime.ReadMemStats(&memEnd)
 			
-			memUsedMB := float64(memEnd.Alloc-memStart.Alloc) / 1024 / 1024
+			// Use current allocation since GC might have reduced memory below start
+			memUsedMB := float64(memEnd.Alloc) / 1024 / 1024
 			t.Logf("Memory used: %.2f MB", memUsedMB)
 			t.Logf("Total allocations: %d", memEnd.TotalAlloc-memStart.TotalAlloc)
 			t.Logf("Number of GC runs: %d", memEnd.NumGC-memStart.NumGC)
@@ -310,12 +311,17 @@ func TestLargeFileStress(t *testing.T) {
 			require.NoError(t, err)
 			
 			compressionTime := time.Since(start)
-			compressionRatio := float64(compressed.Len()) * 100 / float64(fileSize)
+			compressedSize := compressed.Len()
+			compressionRatio := float64(compressedSize) * 100 / float64(fileSize)
 			
 			t.Logf("Compressed %d MB to %d MB (%.2f%%) in %v",
-				fileSize/1024/1024, compressed.Len()/1024/1024, compressionRatio, compressionTime)
+				fileSize/1024/1024, compressedSize/1024/1024, compressionRatio, compressionTime)
 			t.Logf("Compression speed: %.2f MB/s", 
 				float64(fileSize)/compressionTime.Seconds()/1024/1024)
+			
+			// Save compressed size before reader consumes the buffer
+			assert.Greater(t, compressedSize, 0, "Should have compressed data")
+			assert.Equal(t, n, int64(compressedSize), "Bytes copied should match buffer size")
 			
 			// Decompress and verify size
 			start = time.Now()
@@ -329,9 +335,6 @@ func TestLargeFileStress(t *testing.T) {
 			decompressionTime := time.Since(start)
 			
 			assert.Equal(t, int64(fileSize), decompressedSize, "Decompressed size should match original")
-			// Verify we actually compressed some data
-			assert.Greater(t, compressed.Len(), 0, "Should have compressed data")
-			assert.Equal(t, n, int64(compressed.Len()), "Bytes copied should match buffer size")
 			
 			t.Logf("Decompression speed: %.2f MB/s",
 				float64(fileSize)/decompressionTime.Seconds()/1024/1024)
@@ -453,8 +456,9 @@ func TestErrorRecovery(t *testing.T) {
 				// Truncate the compressed data aggressively
 				compressedData := compressed.Bytes()
 				if len(compressedData) > 10 {
-					// Truncate to just 5 bytes - definitely not enough for valid zstd data
-					truncated := compressedData[:5]
+					// Truncate to just 2 bytes - definitely not enough for valid zstd frame
+					// Zstd frame starts with magic number 0xFD2FB528 (4 bytes)
+					truncated := compressedData[:2]
 					
 					// Try to decompress truncated data
 					r, err := impl.compressor.NewReader(bytes.NewReader(truncated))
