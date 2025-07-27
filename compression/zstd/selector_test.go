@@ -22,6 +22,7 @@ import (
 )
 
 func TestGetCompressor(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	// Test automatic detection
 	compressor := GetCompressor()
 	if compressor == nil {
@@ -40,6 +41,7 @@ func TestGetCompressor(t *testing.T) {
 }
 
 func TestEnvironmentOverride(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	tests := []struct {
 		name        string
 		envValue    string
@@ -99,6 +101,7 @@ func TestEnvironmentOverride(t *testing.T) {
 }
 
 func TestCompressionLevelValidation(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	compressor := GetCompressor()
 	maxLevel := compressor.MaxCompressionLevel()
 	

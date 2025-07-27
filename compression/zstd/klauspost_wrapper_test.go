@@ -24,6 +24,7 @@ import (
 )
 
 func TestKlauspostCompressor_Properties(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	compressor := &klauspostCompressor{}
 	
 	// Test IsLibzstdAvailable - should always be false
@@ -43,6 +44,7 @@ func TestKlauspostCompressor_Properties(t *testing.T) {
 }
 
 func TestKlauspostCompressor_CompressionDecompression(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	compressor := &klauspostCompressor{}
 	
 	testData := []byte("Hello, World! This is a test of zstd compression using pure Go implementation.")
@@ -89,6 +91,7 @@ func TestKlauspostCompressor_CompressionDecompression(t *testing.T) {
 }
 
 func TestKlauspostCompressor_InvalidLevel(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	compressor := &klauspostCompressor{}
 	
 	// Test that levels beyond 11 work (they should be capped internally)

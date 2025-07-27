@@ -28,6 +28,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/rs/xid v1.6.0
+	github.com/shirou/gopsutil/v4 v4.25.6
 	github.com/sirupsen/logrus v1.9.3
 	go.etcd.io/bbolt v1.4.2
 	golang.org/x/sync v0.16.0

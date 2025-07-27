@@ -16,16 +16,35 @@
 
 package zstd
 
+/*
+#cgo LDFLAGS: -lzstd
+#include <zstd.h>
+
+// Define ZSTD_c_nbWorkers if not available (for older zstd versions)
+#ifndef ZSTD_c_nbWorkers
+#define ZSTD_c_nbWorkers 400
+#endif
+*/
+import "C"
+
 import (
 	"fmt"
 	"io"
+	"reflect"
+	"unsafe"
 
+	"github.com/containerd/log"
 	"github.com/valyala/gozstd"
 )
 
 // GozstdCompressor implements Compressor using the gozstd library (CGO wrapper of libzstd)
 type GozstdCompressor struct {
 	available bool
+}
+
+// gozstdWriterWrapper wraps gozstd.Writer and sets multi-threading
+type gozstdWriterWrapper struct {
+	*gozstd.Writer
 }
 
 // NewGozstdCompressor creates a new gozstd-based compressor
@@ -61,7 +80,37 @@ func (g *GozstdCompressor) NewWriter(w io.Writer, level int) (WriteFlushCloser, 
 		level = gozstd.DefaultCompressionLevel
 	}
 	
-	return gozstd.NewWriterLevel(w, level), nil
+	// Create the writer
+	writer := gozstd.NewWriterLevel(w, level)
+	
+	// Get optimal worker count
+	workers := GetOptimalWorkerCount()
+	
+	// Use reflection to access the private cs field (ZSTD_CStream pointer)
+	writerValue := reflect.ValueOf(writer).Elem()
+	csField := writerValue.FieldByName("cs")
+	
+	if csField.IsValid() && csField.CanAddr() {
+		// Get the pointer to ZSTD_CStream
+		csPtr := (*C.ZSTD_CStream)(unsafe.Pointer(csField.UnsafeAddr()))
+		
+		// Set the number of workers
+		result := C.ZSTD_CCtx_setParameter(
+			(*C.ZSTD_CCtx)(csPtr),
+			C.ZSTD_c_nbWorkers,
+			C.int(workers))
+		
+		if C.ZSTD_isError(result) != 0 {
+			// Log the error but continue - multi-threading might not be available
+			log.L.Debugf("Failed to set zstd workers to %d, using single-threaded mode", workers)
+		} else {
+			log.L.Debugf("Successfully set zstd workers to %d", workers)
+		}
+	} else {
+		log.L.Debug("Unable to access gozstd internal structure for multi-threading configuration")
+	}
+	
+	return &gozstdWriterWrapper{writer}, nil
 }
 
 // NewReader creates a new zstd reader

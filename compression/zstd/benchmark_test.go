@@ -107,23 +107,28 @@ func benchmarkDecompression(b *testing.B, compressor Compressor, level int) {
 
 // Pure Go benchmarks
 func BenchmarkPureGoCompressionLevel1(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	benchmarkCompression(b, NewPureGoCompressor(), 1)
 }
 
 func BenchmarkPureGoCompressionLevel3(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	benchmarkCompression(b, NewPureGoCompressor(), 3)
 }
 
 func BenchmarkPureGoCompressionLevel11(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	benchmarkCompression(b, NewPureGoCompressor(), 11)
 }
 
 func BenchmarkPureGoDecompressionLevel3(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	benchmarkDecompression(b, NewPureGoCompressor(), 3)
 }
 
 // Gozstd benchmarks (will skip if libzstd not available)
 func BenchmarkGozstdCompressionLevel1(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	compressor := NewGozstdCompressor()
 	if !compressor.IsLibzstdAvailable() {
 		b.Skip("libzstd not available")
@@ -132,6 +137,7 @@ func BenchmarkGozstdCompressionLevel1(b *testing.B) {
 }
 
 func BenchmarkGozstdCompressionLevel3(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	compressor := NewGozstdCompressor()
 	if !compressor.IsLibzstdAvailable() {
 		b.Skip("libzstd not available")
@@ -140,6 +146,7 @@ func BenchmarkGozstdCompressionLevel3(b *testing.B) {
 }
 
 func BenchmarkGozstdCompressionLevel11(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	compressor := NewGozstdCompressor()
 	if !compressor.IsLibzstdAvailable() {
 		b.Skip("libzstd not available")
@@ -148,6 +155,7 @@ func BenchmarkGozstdCompressionLevel11(b *testing.B) {
 }
 
 func BenchmarkGozstdCompressionLevel22(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	compressor := NewGozstdCompressor()
 	if !compressor.IsLibzstdAvailable() {
 		b.Skip("libzstd not available")
@@ -156,6 +164,7 @@ func BenchmarkGozstdCompressionLevel22(b *testing.B) {
 }
 
 func BenchmarkGozstdDecompressionLevel3(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	compressor := NewGozstdCompressor()
 	if !compressor.IsLibzstdAvailable() {
 		b.Skip("libzstd not available")
@@ -165,11 +174,13 @@ func BenchmarkGozstdDecompressionLevel3(b *testing.B) {
 
 // Memory usage benchmarks
 func BenchmarkPureGoMemoryUsage(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	b.ReportAllocs()
 	benchmarkCompression(b, NewPureGoCompressor(), 3)
 }
 
 func BenchmarkGozstdMemoryUsage(b *testing.B) {
+	defer SetupSingleThreadedBenchmark(b)()
 	compressor := NewGozstdCompressor()
 	if !compressor.IsLibzstdAvailable() {
 		b.Skip("libzstd not available")
@@ -180,6 +191,7 @@ func BenchmarkGozstdMemoryUsage(b *testing.B) {
 
 // Compression ratio benchmark
 func TestCompressionRatio(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	levels := []int{1, 3, 11, 22}
 	
 	for _, level := range levels {

@@ -42,7 +42,12 @@ func (p *PureGoCompressor) NewWriter(w io.Writer, level int) (WriteFlushCloser, 
 	// Map the level to the klauspost/compress encoder level
 	encoderLevel := zstd.EncoderLevelFromZstd(level)
 	
-	enc, err := zstd.NewWriter(w, zstd.WithEncoderLevel(encoderLevel))
+	// Get optimal worker count for parallel compression
+	workers := GetOptimalWorkerCount()
+	
+	enc, err := zstd.NewWriter(w, 
+		zstd.WithEncoderLevel(encoderLevel),
+		zstd.WithEncoderConcurrency(workers))
 	if err != nil {
 		return nil, err
 	}

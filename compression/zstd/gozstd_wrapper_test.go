@@ -24,6 +24,7 @@ import (
 )
 
 func TestGozstdCompressor_IsAvailable(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	compressor := &gozstdCompressor{}
 	// This will return false if libzstd is not available or if testing fails
 	// We just verify it returns a boolean without panicking
@@ -31,6 +32,7 @@ func TestGozstdCompressor_IsAvailable(t *testing.T) {
 }
 
 func TestGozstdCompressor_CompressionDecompression(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	compressor := &gozstdCompressor{}
 	
 	// Skip if libzstd is not available
@@ -86,6 +88,7 @@ func TestGozstdCompressor_CompressionDecompression(t *testing.T) {
 }
 
 func TestGozstdCompressor_MaxCompressionLevel(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	compressor := &gozstdCompressor{}
 	maxLevel := compressor.MaxCompressionLevel()
 	
@@ -103,6 +106,7 @@ func TestGozstdCompressor_MaxCompressionLevel(t *testing.T) {
 }
 
 func TestGozstdCompressor_Name(t *testing.T) {
+	defer SetupSingleThreadedTest(t)()
 	compressor := &gozstdCompressor{}
 	name := compressor.Name()
 	
