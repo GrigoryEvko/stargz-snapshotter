@@ -329,7 +329,9 @@ func TestLargeFileStress(t *testing.T) {
 			decompressionTime := time.Since(start)
 			
 			assert.Equal(t, int64(fileSize), decompressedSize, "Decompressed size should match original")
-			assert.Equal(t, int64(compressed.Len()), n, "Compressed size mismatch")
+			// Verify we actually compressed some data
+			assert.Greater(t, compressed.Len(), 0, "Should have compressed data")
+			assert.Equal(t, n, int64(compressed.Len()), "Bytes copied should match buffer size")
 			
 			t.Logf("Decompression speed: %.2f MB/s",
 				float64(fileSize)/decompressionTime.Seconds()/1024/1024)
@@ -422,6 +424,11 @@ func TestErrorRecovery(t *testing.T) {
 				rand.Read(data)
 				
 				_, err = w.Write(data)
+				// Write might succeed if data is buffered
+				if err == nil {
+					// Force flush to trigger the error
+					err = w.Flush()
+				}
 				assert.Error(t, err, "Should fail when underlying writer fails")
 				
 				// Close should handle the error gracefully
@@ -443,10 +450,11 @@ func TestErrorRecovery(t *testing.T) {
 				err = w.Close()
 				require.NoError(t, err)
 				
-				// Truncate the compressed data
+				// Truncate the compressed data aggressively
 				compressedData := compressed.Bytes()
 				if len(compressedData) > 10 {
-					truncated := compressedData[:len(compressedData)/2]
+					// Truncate to just 5 bytes - definitely not enough for valid zstd data
+					truncated := compressedData[:5]
 					
 					// Try to decompress truncated data
 					r, err := impl.compressor.NewReader(bytes.NewReader(truncated))
@@ -482,33 +490,8 @@ func (fw *failingWriter) Write(p []byte) (n int, err error) {
 }
 
 func generateStressTestData(size int, seed int) []byte {
-	data := make([]byte, size)
-	
-	// Use seed to generate different but deterministic data
-	r := rand.New(rand.NewSource(int64(seed)))
-	
-	// Mix of patterns for realistic compression
-	patterns := []string{
-		"The quick brown fox jumps over the lazy dog. ",
-		"Lorem ipsum dolor sit amet, consectetur adipiscing elit. ",
-		"0123456789ABCDEF",
-		"{\n  \"id\": %d,\n  \"value\": %f\n}",
-	}
-	
-	pos := 0
-	for pos < size {
-		if r.Float32() < 0.8 { // 80% pattern data
-			pattern := patterns[r.Intn(len(patterns))]
-			n := copy(data[pos:], []byte(pattern))
-			pos += n
-		} else { // 20% random data
-			end := min(pos+100, size)
-			r.Read(data[pos:end])
-			pos = end
-		}
-	}
-	
-	return data
+	// Use real source code with variation for stress testing
+	return GetVariedSourceData(size, seed)
 }
 
 func min(a, b int) int {

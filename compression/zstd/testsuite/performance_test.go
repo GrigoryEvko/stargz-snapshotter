@@ -455,22 +455,8 @@ func TestThroughput(t *testing.T) {
 
 // Helper functions for data generation
 func generateCompressibleData(size int) []byte {
-	data := make([]byte, size)
-	rand.Seed(1) // Fixed seed for reproducibility
-	
-	// Mix of repetitive and random data for realistic compressibility
-	pattern := []byte("The quick brown fox jumps over the lazy dog. ")
-	patternLen := len(pattern)
-	
-	for i := 0; i < size; i++ {
-		if rand.Float32() < 0.7 { // 70% pattern
-			data[i] = pattern[i%patternLen]
-		} else { // 30% random
-			data[i] = byte(rand.Intn(256))
-		}
-	}
-	
-	return data
+	// Use real source code for more realistic compression testing
+	return GetSourceCodeData(size)
 }
 
 func generateRandomData(size int) []byte {
@@ -480,21 +466,8 @@ func generateRandomData(size int) []byte {
 }
 
 func generateTextData(size int) []byte {
-	words := []string{"the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog", 
-		"and", "then", "runs", "away", "quickly", "through", "forest", "path"}
-	
-	var buf bytes.Buffer
-	for buf.Len() < size {
-		word := words[rand.Intn(len(words))]
-		buf.WriteString(word)
-		if rand.Float32() < 0.1 {
-			buf.WriteByte('\n')
-		} else {
-			buf.WriteByte(' ')
-		}
-	}
-	
-	return buf.Bytes()[:size]
+	// Use real source code which is natural text for compression testing
+	return GetSourceCodeData(size)
 }
 
 func generateJSONData(size int) []byte {
