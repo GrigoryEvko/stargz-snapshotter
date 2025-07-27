@@ -39,8 +39,8 @@ func NewGozstdCompressor() *GozstdCompressor {
 	}()
 
 	// Try a small compression to verify libzstd works
-	_, err := gozstd.Compress(nil, []byte("test"))
-	available = (err == nil)
+	compressed := gozstd.Compress(nil, []byte("test"))
+	available = (compressed != nil)
 
 	return &GozstdCompressor{available: available}
 }
@@ -66,13 +66,24 @@ func (g *GozstdCompressor) NewReader(r io.Reader) (io.ReadCloser, error) {
 	if !g.available {
 		return nil, fmt.Errorf("libzstd not available")
 	}
-	return gozstd.NewReader(r), nil
+	reader := gozstd.NewReader(r)
+	return &gozstdReaderWrapper{reader}, nil
+}
+
+// gozstdReaderWrapper wraps gozstd.Reader to implement io.ReadCloser
+type gozstdReaderWrapper struct {
+	*gozstd.Reader
+}
+
+func (w *gozstdReaderWrapper) Close() error {
+	w.Reader.Release()
+	return nil
 }
 
 // Name returns the name of the compressor implementation
 func (g *GozstdCompressor) Name() string {
 	if g.available {
-		return fmt.Sprintf("libzstd/%s (via gozstd)", gozstd.VersionString())
+		return "libzstd (via gozstd)"
 	}
 	return "gozstd (unavailable)"
 }
