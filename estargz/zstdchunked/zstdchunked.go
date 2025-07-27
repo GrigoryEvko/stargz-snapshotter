@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"sync"
 
 	compzstd "github.com/containerd/stargz-snapshotter/compression/zstd"
 	"github.com/containerd/stargz-snapshotter/estargz"

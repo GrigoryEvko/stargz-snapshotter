@@ -25,7 +25,7 @@ import (
 
 func TestGozstdCompressor_IsAvailable(t *testing.T) {
 	defer SetupSingleThreadedTest(t)()
-	compressor := &gozstdCompressor{}
+	compressor := NewGozstdCompressor()
 	// This will return false if libzstd is not available or if testing fails
 	// We just verify it returns a boolean without panicking
 	_ = compressor.IsLibzstdAvailable()
@@ -33,10 +33,10 @@ func TestGozstdCompressor_IsAvailable(t *testing.T) {
 
 func TestGozstdCompressor_CompressionDecompression(t *testing.T) {
 	defer SetupSingleThreadedTest(t)()
-	compressor := &gozstdCompressor{}
+	compressor := NewGozstdCompressor()
 	
 	// Skip if libzstd is not available
-	if !compressor.tryLibzstd() {
+	if !compressor.IsLibzstdAvailable() {
 		t.Skip("libzstd not available, skipping gozstd tests")
 	}
 	
@@ -89,34 +89,34 @@ func TestGozstdCompressor_CompressionDecompression(t *testing.T) {
 
 func TestGozstdCompressor_MaxCompressionLevel(t *testing.T) {
 	defer SetupSingleThreadedTest(t)()
-	compressor := &gozstdCompressor{}
+	compressor := NewGozstdCompressor()
 	maxLevel := compressor.MaxCompressionLevel()
 	
 	// When libzstd is available, max level should be 22
-	// When not available, it falls back to 11
-	if compressor.tryLibzstd() {
+	// When not available, it should be 0
+	if compressor.IsLibzstdAvailable() {
 		if maxLevel != 22 {
 			t.Errorf("Expected max level 22 with libzstd, got %d", maxLevel)
 		}
 	} else {
-		if maxLevel != 11 {
-			t.Errorf("Expected max level 11 without libzstd, got %d", maxLevel)
+		if maxLevel != 0 {
+			t.Errorf("Expected max level 0 without libzstd, got %d", maxLevel)
 		}
 	}
 }
 
 func TestGozstdCompressor_Name(t *testing.T) {
 	defer SetupSingleThreadedTest(t)()
-	compressor := &gozstdCompressor{}
+	compressor := NewGozstdCompressor()
 	name := compressor.Name()
 	
-	if compressor.tryLibzstd() {
-		if name != "gozstd (libzstd)" {
-			t.Errorf("Expected name 'gozstd (libzstd)', got %q", name)
+	if compressor.IsLibzstdAvailable() {
+		if name != "libzstd (via gozstd)" {
+			t.Errorf("Expected name 'libzstd (via gozstd)', got %q", name)
 		}
 	} else {
-		if name != "gozstd (fallback to pure-go)" {
-			t.Errorf("Expected name 'gozstd (fallback to pure-go)', got %q", name)
+		if name != "gozstd (unavailable)" {
+			t.Errorf("Expected name 'gozstd (unavailable)', got %q", name)
 		}
 	}
 }

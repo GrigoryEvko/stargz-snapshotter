@@ -25,7 +25,7 @@ import (
 
 func TestKlauspostCompressor_Properties(t *testing.T) {
 	defer SetupSingleThreadedTest(t)()
-	compressor := &klauspostCompressor{}
+	compressor := NewPureGoCompressor()
 	
 	// Test IsLibzstdAvailable - should always be false
 	if compressor.IsLibzstdAvailable() {
@@ -38,14 +38,14 @@ func TestKlauspostCompressor_Properties(t *testing.T) {
 	}
 	
 	// Test Name
-	if name := compressor.Name(); name != "klauspost/compress" {
-		t.Errorf("Expected name 'klauspost/compress', got %q", name)
+	if name := compressor.Name(); name != "pure-go (klauspost/compress)" {
+		t.Errorf("Expected name 'pure-go (klauspost/compress)', got %q", name)
 	}
 }
 
 func TestKlauspostCompressor_CompressionDecompression(t *testing.T) {
 	defer SetupSingleThreadedTest(t)()
-	compressor := &klauspostCompressor{}
+	compressor := NewPureGoCompressor()
 	
 	testData := []byte("Hello, World! This is a test of zstd compression using pure Go implementation.")
 	levels := []int{1, 3, 11, 15} // 15 should be capped to 11
@@ -92,7 +92,7 @@ func TestKlauspostCompressor_CompressionDecompression(t *testing.T) {
 
 func TestKlauspostCompressor_InvalidLevel(t *testing.T) {
 	defer SetupSingleThreadedTest(t)()
-	compressor := &klauspostCompressor{}
+	compressor := NewPureGoCompressor()
 	
 	// Test that levels beyond 11 work (they should be capped internally)
 	writer, err := compressor.NewWriter(io.Discard, 22)
