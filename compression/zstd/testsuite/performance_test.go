@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"runtime"
 	"testing"
 	"time"
 

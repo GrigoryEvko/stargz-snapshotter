@@ -20,9 +20,9 @@ package testsuite
 
 import (
 	"bytes"
-	"crypto/rand"
 	"fmt"
 	"io"
+	"math/rand"
 	"runtime"
 	"sync"
 	"sync/atomic"

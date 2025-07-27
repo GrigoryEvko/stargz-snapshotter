@@ -17,6 +17,7 @@
 package zstd
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/klauspost/compress/zstd"
@@ -32,6 +33,12 @@ func NewPureGoCompressor() *PureGoCompressor {
 
 // NewWriter creates a new zstd writer with the specified compression level
 func (p *PureGoCompressor) NewWriter(w io.Writer, level int) (WriteFlushCloser, error) {
+	// Validate compression level
+	// Pure Go implementation supports levels 0-11 (mapped from zstd levels)
+	if level < 0 || level > 11 {
+		return nil, fmt.Errorf("invalid compression level %d: must be between 0 and 11", level)
+	}
+	
 	// Map the level to the klauspost/compress encoder level
 	encoderLevel := zstd.EncoderLevelFromZstd(level)
 	
