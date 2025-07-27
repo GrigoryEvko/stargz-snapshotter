@@ -36,6 +36,7 @@ import (
 	"github.com/containerd/containerd/v2/pkg/sys"
 	"github.com/containerd/log"
 	"github.com/containerd/stargz-snapshotter/cmd/containerd-stargz-grpc/fsopts"
+	compzstd "github.com/containerd/stargz-snapshotter/compression/zstd"
 	"github.com/containerd/stargz-snapshotter/fusemanager"
 	"github.com/containerd/stargz-snapshotter/service"
 	"github.com/containerd/stargz-snapshotter/service/keychain/keychainconfig"
@@ -110,6 +111,14 @@ func main() {
 	}
 	if *printVersion {
 		fmt.Println("containerd-stargz-grpc", version.Version, version.Revision)
+		
+		// Print compression information
+		compressor := compzstd.GetCompressor()
+		if compressor.IsLibzstdAvailable() {
+			fmt.Printf("zstd: libzstd (via gozstd, max level: %d)\n", compressor.MaxCompressionLevel())
+		} else {
+			fmt.Printf("zstd: pure-go (klauspost/compress, max level: %d)\n", compressor.MaxCompressionLevel())
+		}
 		return
 	}
 

@@ -23,12 +23,13 @@ VERSION=$(shell git describe --match 'v[0-9]*' --dirty='.m' --always --tags)
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
 GO_BUILD_LDFLAGS ?= -s -w
 GO_LD_FLAGS=-ldflags '$(GO_BUILD_LDFLAGS) -X $(PKG)/version.Version=$(VERSION) -X $(PKG)/version.Revision=$(REVISION) $(GO_EXTRA_LDFLAGS)'
+export CGO_ENABLED=1
 
 CMD=containerd-stargz-grpc ctr-remote stargz-store stargz-fuse-manager
 
 CMD_BINARIES=$(addprefix $(PREFIX),$(CMD))
 
-.PHONY: all build check install uninstall clean test test-root test-all integration test-optimize benchmark test-kind test-cri-containerd test-cri-o test-criauth generate validate-generated test-k3s test-k3s-argo-workflow vendor
+.PHONY: all build check install uninstall clean test test-root test-all integration test-optimize benchmark test-kind test-cri-containerd test-cri-o test-criauth generate validate-generated test-k3s test-k3s-argo-workflow vendor test-zstd test-zstd-unit test-zstd-integration test-zstd-benchmark test-zstd-stress test-zstd-all
 
 all: build
 
@@ -135,3 +136,23 @@ validate-vendor:
 	@(cd ${TMPDIR}/stargz-snapshotter && make vendor)
 	@diff -r -u -q $(CURDIR) ${TMPDIR}/stargz-snapshotter
 	@rm -rf ${TMPDIR}
+
+# ZSTD compression test targets
+.PHONY: test-zstd test-zstd-unit test-zstd-integration test-zstd-benchmark test-zstd-stress test-zstd-all
+
+test-zstd: test-zstd-unit test-zstd-integration ## Run all zstd compression tests
+
+test-zstd-unit: ## Run zstd unit tests
+	@GO111MODULE=$(GO111MODULE_VALUE) go test -v ./compression/zstd/testsuite/... -tags zstd_unit
+
+test-zstd-integration: ## Run zstd integration tests
+	@GO111MODULE=$(GO111MODULE_VALUE) go test -v ./compression/zstd/testsuite/... -tags zstd_integration
+
+test-zstd-benchmark: ## Run zstd performance benchmarks
+	@GO111MODULE=$(GO111MODULE_VALUE) go test -v ./compression/zstd/testsuite/... -tags zstd_benchmark -bench=. -benchmem
+
+test-zstd-stress: ## Run zstd stress tests
+	@GO111MODULE=$(GO111MODULE_VALUE) go test -v ./compression/zstd/testsuite/... -tags zstd_stress -timeout 30m
+
+test-zstd-all: ## Run all zstd tests including benchmarks and stress tests
+	@GO111MODULE=$(GO111MODULE_VALUE) go test -v ./compression/zstd/testsuite/... -tags zstd_all -bench=. -benchmem -timeout 30m

@@ -36,6 +36,9 @@ type Config struct {
 
 	// SnapshotterConfig is snapshotter-related config.
 	SnapshotterConfig `toml:"snapshotter" json:"snapshotter"`
+
+	// CompressionConfig is config for compression settings.
+	CompressionConfig `toml:"compression" json:"compression"`
 }
 
 // KubeconfigKeychainConfig is config for kubeconfig-based keychain.
@@ -70,4 +73,12 @@ type SnapshotterConfig struct {
 	// NOTE: User needs to manually remove the snapshots from containerd's metadata store using
 	//       ctr (e.g. `ctr snapshot rm`).
 	AllowInvalidMountsOnRestart bool `toml:"allow_invalid_mounts_on_restart" json:"allow_invalid_mounts_on_restart"`
+}
+
+// CompressionConfig is config for compression settings.
+type CompressionConfig struct {
+	// ZstdImplementation specifies which zstd implementation to use: "auto" (default), "klauspost", "gozstd"
+	ZstdImplementation string `toml:"zstd_implementation" json:"zstd_implementation"`
+	// ZstdChunkedCompressionLevel default compression level for zstd:chunked (1-22)
+	ZstdChunkedCompressionLevel int `toml:"zstd_chunked_compression_level" json:"zstd_chunked_compression_level"`
 }

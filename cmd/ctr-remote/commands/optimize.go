@@ -42,6 +42,7 @@ import (
 	zstdchunkedconvert "github.com/containerd/stargz-snapshotter/nativeconverter/zstdchunked"
 	"github.com/containerd/stargz-snapshotter/recorder"
 	"github.com/containerd/stargz-snapshotter/util/containerdutil"
+	compzstd "github.com/containerd/stargz-snapshotter/compression/zstd"
 	"github.com/klauspost/compress/zstd"
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -176,8 +177,21 @@ var OptimizeCommand = &cli.Command{
 		var f converter.ConvertFunc
 		var finalize func(ctx context.Context, cs content.Store, ref string, desc *ocispec.Descriptor) (*images.Image, error)
 		if clicontext.Bool("zstdchunked") {
+			// Get the appropriate compressor
+			compressor := compzstd.GetCompressor()
+			compressionLevel := clicontext.Int("zstdchunked-compression-level")
+			
+			// Validate compression level
+			if compressionLevel > compressor.MaxCompressionLevel() {
+				log.G(ctx).Warnf("Requested zstd:chunked level %d exceeds maximum %d for %s, using maximum", 
+					compressionLevel, compressor.MaxCompressionLevel(), compressor.Name())
+				compressionLevel = compressor.MaxCompressionLevel()
+			}
+			
+			// Note: LayerConvertWithLayerOptsFuncWithCompressionLevel expects an encoder level from klauspost/compress
+			// When using libzstd, we still need to map to the klauspost encoder levels for now
 			f = zstdchunkedconvert.LayerConvertWithLayerOptsFuncWithCompressionLevel(
-				zstd.EncoderLevelFromZstd(clicontext.Int("zstdchunked-compression-level")), esgzOptsPerLayer)
+				zstd.EncoderLevelFromZstd(compressionLevel), esgzOptsPerLayer)
 		} else if !clicontext.Bool("estargz-external-toc") {
 			f = estargzconvert.LayerConvertWithLayerAndCommonOptsFunc(esgzOptsPerLayer,
 				estargz.WithCompressionLevel(clicontext.Int("estargz-compression-level")),

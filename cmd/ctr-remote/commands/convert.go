@@ -37,6 +37,7 @@ import (
 	esgzexternaltocconvert "github.com/containerd/stargz-snapshotter/nativeconverter/estargz/externaltoc"
 	zstdchunkedconvert "github.com/containerd/stargz-snapshotter/nativeconverter/zstdchunked"
 	"github.com/containerd/stargz-snapshotter/recorder"
+	compzstd "github.com/containerd/stargz-snapshotter/compression/zstd"
 	"github.com/klauspost/compress/zstd"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/urfave/cli/v2"
@@ -114,6 +115,11 @@ When '--all-platforms' is given all images in a manifest list must be available.
 		&cli.BoolFlag{
 			Name:  "oci",
 			Usage: "convert Docker media types to OCI media types",
+		},
+		// debug flags
+		&cli.BoolFlag{
+			Name:  "debug-compression",
+			Usage: "show detailed compression information (EXPERIMENTAL)",
 		},
 		// platform flags
 		&cli.StringSliceFlag{
@@ -198,8 +204,32 @@ When '--all-platforms' is given all images in a manifest list must be available.
 			if err != nil {
 				return err
 			}
+			
+			// Get the appropriate compressor
+			compressor := compzstd.GetCompressor()
+			compressionLevel := context.Int("zstdchunked-compression-level")
+			
+			// Validate compression level
+			if compressionLevel > compressor.MaxCompressionLevel() {
+				log.L.Warnf("Requested zstd:chunked level %d exceeds maximum %d for %s, using maximum", 
+					compressionLevel, compressor.MaxCompressionLevel(), compressor.Name())
+				compressionLevel = compressor.MaxCompressionLevel()
+			}
+			
+			// Debug compression info if requested
+			if context.Bool("debug-compression") {
+				fmt.Fprintf(context.App.Writer, "=== Compression Debug Info ===\n")
+				fmt.Fprintf(context.App.Writer, "Implementation: %s\n", compressor.Name())
+				fmt.Fprintf(context.App.Writer, "Max Compression Level: %d\n", compressor.MaxCompressionLevel())
+				fmt.Fprintf(context.App.Writer, "libzstd Available: %v\n", compressor.IsLibzstdAvailable())
+				fmt.Fprintf(context.App.Writer, "Requested zstd:chunked Level: %d\n", compressionLevel)
+				fmt.Fprintf(context.App.Writer, "=============================\n\n")
+			}
+			
+			// Note: LayerConvertFuncWithCompressionLevel expects an encoder level from klauspost/compress
+			// When using libzstd, we still need to map to the klauspost encoder levels for now
 			layerConvertFunc = zstdchunkedconvert.LayerConvertFuncWithCompressionLevel(
-				zstd.EncoderLevelFromZstd(context.Int("zstdchunked-compression-level")), esgzOpts...)
+				zstd.EncoderLevelFromZstd(compressionLevel), esgzOpts...)
 			if !context.Bool("oci") {
 				return errors.New("option --zstdchunked must be used in conjunction with --oci")
 			}

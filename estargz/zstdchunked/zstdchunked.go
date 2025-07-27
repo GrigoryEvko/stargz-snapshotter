@@ -26,6 +26,7 @@ import (
 	"io"
 	"sync"
 
+	compzstd "github.com/containerd/stargz-snapshotter/compression/zstd"
 	"github.com/containerd/stargz-snapshotter/estargz"
 	"github.com/klauspost/compress/zstd"
 	digest "github.com/opencontainers/go-digest"
@@ -53,15 +54,13 @@ var (
 type Decompressor struct{}
 
 func (zz *Decompressor) Reader(r io.Reader) (io.ReadCloser, error) {
-	decoder, err := zstd.NewReader(r)
-	if err != nil {
-		return nil, err
-	}
-	return &zstdReadCloser{decoder}, nil
+	compressor := compzstd.GetCompressor()
+	return compressor.NewReader(r)
 }
 
 func (zz *Decompressor) ParseTOC(r io.Reader) (toc *estargz.JTOC, tocDgst digest.Digest, err error) {
-	zr, err := zstd.NewReader(r)
+	compressor := compzstd.GetCompressor()
+	zr, err := compressor.NewReader(r)
 	if err != nil {
 		return nil, "", err
 	}
@@ -89,7 +88,8 @@ func (zz *Decompressor) FooterSize() int64 {
 }
 
 func (zz *Decompressor) DecompressTOC(r io.Reader) (tocJSON io.ReadCloser, err error) {
-	decoder, err := zstd.NewReader(r)
+	compressor := compzstd.GetCompressor()
+	decoder, err := compressor.NewReader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (zz *Decompressor) DecompressTOC(r io.Reader) (tocJSON io.ReadCloser, err e
 	if _, err := br.Peek(1); err != nil {
 		return nil, err
 	}
-	return &reader{br, decoder.Close}, nil
+	return &reader{br, func() { decoder.Close() }}, nil
 }
 
 type reader struct {
@@ -107,44 +107,41 @@ type reader struct {
 
 func (r *reader) Close() error { r.closeFunc(); return nil }
 
-type zstdReadCloser struct{ *zstd.Decoder }
-
-func (z *zstdReadCloser) Close() error {
-	z.Decoder.Close()
-	return nil
-}
+// No longer needed - we use the io.ReadCloser from our compression package
 
 type Compressor struct {
 	CompressionLevel zstd.EncoderLevel
 	Metadata         map[string]string
 
-	pool sync.Pool
+	// Note: Pool functionality removed as our compression interface handles its own resource management
 }
 
 func (zc *Compressor) Writer(w io.Writer) (estargz.WriteFlushCloser, error) {
-	if wc := zc.pool.Get(); wc != nil {
-		ec := wc.(*zstd.Encoder)
-		ec.Reset(w)
-		return &poolEncoder{ec, zc}, nil
+	compressor := compzstd.GetCompressor()
+	// Convert klauspost encoder level to integer compression level
+	// EncoderLevelFromZstd converts zstd levels to encoder levels, so we need the reverse
+	level := int(zc.CompressionLevel)
+	if zc.CompressionLevel == zstd.SpeedFastest {
+		level = 1
+	} else if zc.CompressionLevel == zstd.SpeedDefault {
+		level = 3
+	} else if zc.CompressionLevel == zstd.SpeedBetterCompression {
+		level = 7
+	} else if zc.CompressionLevel == zstd.SpeedBestCompression {
+		level = 11
 	}
-	ec, err := zstd.NewWriter(w, zstd.WithEncoderLevel(zc.CompressionLevel), zstd.WithLowerEncoderMem(true))
+	
+	writer, err := compressor.NewWriter(w, level)
 	if err != nil {
 		return nil, err
 	}
-	return &poolEncoder{ec, zc}, nil
+	// Convert WriteFlushCloser to estargz.WriteFlushCloser
+	return writeFlushCloserAdapter{writer}, nil
 }
 
-type poolEncoder struct {
-	*zstd.Encoder
-	zc *Compressor
-}
-
-func (w *poolEncoder) Close() error {
-	if err := w.Encoder.Close(); err != nil {
-		return err
-	}
-	w.zc.pool.Put(w.Encoder)
-	return nil
+// writeFlushCloserAdapter adapts our compression WriteFlushCloser to estargz.WriteFlushCloser
+type writeFlushCloserAdapter struct {
+	compzstd.WriteFlushCloser
 }
 
 func (zc *Compressor) WriteTOCAndFooter(w io.Writer, off int64, toc *estargz.JTOC, diffHash hash.Hash) (digest.Digest, error) {
@@ -153,7 +150,21 @@ func (zc *Compressor) WriteTOCAndFooter(w io.Writer, off int64, toc *estargz.JTO
 		return "", err
 	}
 	buf := new(bytes.Buffer)
-	encoder, err := zstd.NewWriter(buf, zstd.WithEncoderLevel(zc.CompressionLevel))
+	
+	compressor := compzstd.GetCompressor()
+	// Convert encoder level to integer
+	level := int(zc.CompressionLevel)
+	if zc.CompressionLevel == zstd.SpeedFastest {
+		level = 1
+	} else if zc.CompressionLevel == zstd.SpeedDefault {
+		level = 3
+	} else if zc.CompressionLevel == zstd.SpeedBetterCompression {
+		level = 7
+	} else if zc.CompressionLevel == zstd.SpeedBestCompression {
+		level = 11
+	}
+	
+	encoder, err := compressor.NewWriter(buf, level)
 	if err != nil {
 		return "", err
 	}
