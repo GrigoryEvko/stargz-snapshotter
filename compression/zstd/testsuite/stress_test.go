@@ -460,10 +460,12 @@ func TestErrorRecovery(t *testing.T) {
 					// Zstd frame starts with magic number 0xFD2FB528 (4 bytes)
 					truncated := compressedData[:2]
 					
-					// Try to decompress truncated data
+					// Try to decompress truncated data and read expected amount
 					r, err := impl.compressor.NewReader(bytes.NewReader(truncated))
 					if err == nil {
-						_, err = io.ReadAll(r)
+						// Force reading the expected amount of data
+						buf := make([]byte, len(testData))
+						_, err = io.ReadFull(r, buf)
 						r.Close()
 					}
 					assert.Error(t, err, "Should fail on truncated data")
