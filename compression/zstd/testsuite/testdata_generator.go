@@ -18,8 +18,6 @@ package testsuite
 
 import (
 	"bytes"
-	"fmt"
-	"io"
 	"io/fs"
 	"math/rand"
 	"os"
