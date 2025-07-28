@@ -33,7 +33,7 @@ func GetCompressor() Compressor {
 	once.Do(func() {
 		// Check if user wants to force pure Go implementation
 		if os.Getenv("STARGZ_FORCE_PURE_GO_ZSTD") == "1" {
-			log.G(nil).Debug("Forcing pure Go zstd implementation due to STARGZ_FORCE_PURE_GO_ZSTD=1")
+			log.L.Debug("Forcing pure Go zstd implementation due to STARGZ_FORCE_PURE_GO_ZSTD=1")
 			defaultCompressor = NewPureGoCompressor()
 			return
 		}
@@ -41,10 +41,10 @@ func GetCompressor() Compressor {
 		// Try gozstd first
 		gozstd := NewGozstdCompressor()
 		if gozstd.IsLibzstdAvailable() {
-			log.G(nil).Debugf("Using %s for compression", gozstd.Name())
+			log.L.Debugf("Using %s for compression", gozstd.Name())
 			defaultCompressor = gozstd
 		} else {
-			log.G(nil).Debug("libzstd not available, falling back to pure Go zstd implementation")
+			log.L.Debug("libzstd not available, falling back to pure Go zstd implementation")
 			defaultCompressor = NewPureGoCompressor()
 		}
 	})

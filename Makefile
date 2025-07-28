@@ -22,8 +22,9 @@ PKG=github.com/containerd/stargz-snapshotter
 VERSION=$(shell git describe --match 'v[0-9]*' --dirty='.m' --always --tags)
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
 GO_BUILD_LDFLAGS ?= -s -w
-GO_LD_FLAGS=-ldflags '$(GO_BUILD_LDFLAGS) -X $(PKG)/version.Version=$(VERSION) -X $(PKG)/version.Revision=$(REVISION) $(GO_EXTRA_LDFLAGS)'
+GO_LD_FLAGS=-ldflags '$(GO_BUILD_LDFLAGS) -X $(PKG)/version.Version=$(VERSION) -X $(PKG)/version.Revision=$(REVISION) $(GO_EXTRA_LDFLAGS) -linkmode=external'
 export CGO_ENABLED=1
+export CGO_LDFLAGS_ALLOW=-flto.*
 
 CMD=containerd-stargz-grpc ctr-remote stargz-store stargz-fuse-manager
 
@@ -38,19 +39,19 @@ build: $(CMD)
 FORCE:
 
 containerd-stargz-grpc: FORCE
-	cd cmd/ ; GO111MODULE=$(GO111MODULE_VALUE) go build -o $(PREFIX)$@ $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -v ./containerd-stargz-grpc
+	cd cmd/ ; CGO_LDFLAGS_ALLOW='-flto.*' GO111MODULE=$(GO111MODULE_VALUE) go build -o $(PREFIX)$@ $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -v ./containerd-stargz-grpc
 
 ctr-remote: FORCE
-	cd cmd/ ; GO111MODULE=$(GO111MODULE_VALUE) go build -o $(PREFIX)$@ $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -v ./ctr-remote
+	cd cmd/ ; CGO_LDFLAGS_ALLOW='-flto.*' GO111MODULE=$(GO111MODULE_VALUE) go build -o $(PREFIX)$@ $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -v ./ctr-remote
 
 stargz-store: FORCE
-	cd cmd/ ; GO111MODULE=$(GO111MODULE_VALUE) go build -o $(PREFIX)$@ $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -v ./stargz-store
+	cd cmd/ ; CGO_LDFLAGS_ALLOW='-flto.*' GO111MODULE=$(GO111MODULE_VALUE) go build -o $(PREFIX)$@ $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -v ./stargz-store
 
 stargz-store-helper: FORCE
-	cd cmd/ ; GO111MODULE=$(GO111MODULE_VALUE) go build -o $(PREFIX)$@ $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -v ./stargz-store/helper
+	cd cmd/ ; CGO_LDFLAGS_ALLOW='-flto.*' GO111MODULE=$(GO111MODULE_VALUE) go build -o $(PREFIX)$@ $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -v ./stargz-store/helper
 
 stargz-fuse-manager: FORCE
-	cd cmd/ ; GO111MODULE=$(GO111MODULE_VALUE) go build -o $(PREFIX)$@ $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -v ./stargz-fuse-manager
+	cd cmd/ ; CGO_LDFLAGS_ALLOW='-flto.*' GO111MODULE=$(GO111MODULE_VALUE) go build -o $(PREFIX)$@ $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -v ./stargz-fuse-manager
 
 check:
 	@echo "$@"
@@ -86,10 +87,10 @@ vendor:
 
 test:
 	@echo "$@"
-	@GO111MODULE=$(GO111MODULE_VALUE) go test -race ./...
-	@cd ./estargz ; GO111MODULE=$(GO111MODULE_VALUE) go test -timeout 30m -race ./...
-	@cd ./cmd ; GO111MODULE=$(GO111MODULE_VALUE) go test -timeout 20m -race ./...
-	@cd ./ipfs ; GO111MODULE=$(GO111MODULE_VALUE) go test -timeout 20m -race ./...
+	@CGO_LDFLAGS_ALLOW='-flto.*' GO111MODULE=$(GO111MODULE_VALUE) go test -ldflags="-linkmode=external" -race ./...
+	@cd ./estargz ; CGO_LDFLAGS_ALLOW='-flto.*' GO111MODULE=$(GO111MODULE_VALUE) go test -ldflags="-linkmode=external" -timeout 30m -race ./...
+	@cd ./cmd ; CGO_LDFLAGS_ALLOW='-flto.*' GO111MODULE=$(GO111MODULE_VALUE) go test -ldflags="-linkmode=external" -timeout 20m -race ./...
+	@cd ./ipfs ; CGO_LDFLAGS_ALLOW='-flto.*' GO111MODULE=$(GO111MODULE_VALUE) go test -ldflags="-linkmode=external" -timeout 20m -race ./...
 
 test-root:
 	@echo "$@"

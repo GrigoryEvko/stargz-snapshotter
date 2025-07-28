@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/valyala/gozstd"
+	"github.com/GrigoryEvko/gozstd"
 )
 
 // GozstdCompressor implements Compressor using the gozstd library (CGO wrapper of libzstd)
