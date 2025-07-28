@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/containerd/log"
 	"github.com/GrigoryEvko/gozstd"
 )
 
@@ -80,11 +79,6 @@ func (g *GozstdCompressor) NewWriter(w io.Writer, level int) (WriteFlushCloser, 
 	}
 	
 	writer := gozstd.NewWriterParams(w, params)
-	
-	if workers > 0 {
-		log.L.Debugf("Created gozstd writer with %d workers for compression level %d", workers, level)
-	}
-	
 	return &gozstdWriterWrapper{writer}, nil
 }
 
@@ -116,7 +110,10 @@ func (w *gozstdWriterWrapper) Flush() error {
 
 // Name returns the name of the compressor
 func (g *GozstdCompressor) Name() string {
-	return "gozstd (cgo libzstd)"
+	if g.available {
+		return "libzstd (via gozstd)"
+	}
+	return "gozstd (unavailable)"
 }
 
 // IsLibzstdAvailable returns true if libzstd is available

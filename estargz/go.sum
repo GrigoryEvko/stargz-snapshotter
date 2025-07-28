@@ -1,7 +1,5 @@
 github.com/GrigoryEvko/gozstd v1.22.1 h1:MSheaRvUldIEURGTvMKNC1ZsBr92lxWOHOwJnbWSwsQ=
 github.com/GrigoryEvko/gozstd v1.22.1/go.mod h1:25Ey/Aa2NgZiEk033qyWFseBMpDyfWy8HaY/6NiXSa0=
-github.com/GrigoryEvko/stargz-snapshotter v0.17.1 h1:4p2fo/oSfZSQz6TmJMzpgdGNjZ64RItn/37NuaGav2A=
-github.com/GrigoryEvko/stargz-snapshotter v0.17.1/go.mod h1:1+SoBjM8wcpiews7P6NNluuDqzghZQiD+zm/CXB6ac0=
 github.com/containerd/log v0.1.0 h1:TCJt7ioM2cr/tfR8GPbGf9/VRAX8D2B4PjzCpfX540I=
 github.com/containerd/log v0.1.0/go.mod h1:VRRf09a7mHDIRezVKTRCrOq78v577GXq3bSa3EhrzVo=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -36,8 +34,6 @@ github.com/tklauser/go-sysconf v0.3.12 h1:0QaGUFOdQaIVdPgfITYzaTegZvdCjmYO52cSFA
 github.com/tklauser/go-sysconf v0.3.12/go.mod h1:Ho14jnntGE1fpdOqQEEaiKRpvIavV0hSfmBq8nJbHYI=
 github.com/tklauser/numcpus v0.6.1 h1:ng9scYS7az0Bk4OZLvrNXNSAO2Pxr1XXRAPyjhIx+Fk=
 github.com/tklauser/numcpus v0.6.1/go.mod h1:1XfjsgE2zo8GVw7POkMbHENHzVg3GzmoZ9fESEdAacY=
-github.com/valyala/gozstd v1.22.0 h1:y9gANljS8mrehiLWrnLK3B98ITnLneIO6FiK2jpvNUo=
-github.com/valyala/gozstd v1.22.0/go.mod h1:y5Ew47GLlP37EkTB+B4s7r6A5rdaeB7ftbl9zoYiIPQ=
 github.com/vbatts/tar-split v0.12.1 h1:CqKoORW7BUWBe7UL/iqTVvkTBOF8UvOMKOIZykxnnbo=
 github.com/vbatts/tar-split v0.12.1/go.mod h1:eF6B6i6ftWQcDqEn3/iGFRFRo8cBIMSJVOpnNdfTMFA=
 github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=

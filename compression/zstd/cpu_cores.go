@@ -21,7 +21,6 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/containerd/log"
 	"github.com/shirou/gopsutil/v4/cpu"
 )
 
@@ -32,10 +31,9 @@ func GetOptimalWorkerCount() int {
 	// Check environment variable first
 	if workers := os.Getenv("ZSTD_WORKERS"); workers != "" {
 		if n, err := strconv.Atoi(workers); err == nil && n > 0 {
-			log.L.Debugf("Using ZSTD_WORKERS=%d from environment", n)
 			return n
 		}
-		log.L.Warnf("Invalid ZSTD_WORKERS value: %s, using automatic detection", workers)
+		// Invalid ZSTD_WORKERS value, fall through to automatic detection
 	}
 	
 	// Try to get physical cores
@@ -45,7 +43,6 @@ func GetOptimalWorkerCount() int {
 		if workers < 1 {
 			workers = 1
 		}
-		log.L.Debugf("Detected %d physical cores, using %d workers for zstd compression", cores, workers)
 		return workers
 	}
 	
@@ -55,6 +52,5 @@ func GetOptimalWorkerCount() int {
 	if workers < 1 {
 		workers = 1
 	}
-	log.L.Debugf("Could not detect physical cores, using %d workers based on %d logical CPUs", workers, logical)
 	return workers
 }

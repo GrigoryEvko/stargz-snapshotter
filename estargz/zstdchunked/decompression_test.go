@@ -30,6 +30,7 @@ import (
 
 	"github.com/containerd/stargz-snapshotter/estargz"
 	compzstd "github.com/containerd/stargz-snapshotter/compression/zstd"
+	"github.com/klauspost/compress/zstd"
 	digest "github.com/opencontainers/go-digest"
 )
 
@@ -79,7 +80,7 @@ func TestDecompressionWithDifferentImplementations(t *testing.T) {
 		t.Run(fmt.Sprintf("Level_%d", level), func(t *testing.T) {
 			// Create zstd:chunked compressed layer
 			compressor := &Compressor{
-				CompressionLevel: int32(level),
+				CompressionLevel: zstd.EncoderLevelFromZstd(level),
 			}
 
 			var compressedBuf bytes.Buffer
@@ -94,6 +95,11 @@ func TestDecompressionWithDifferentImplementations(t *testing.T) {
 
 			// Write tar data
 			if _, err := io.Copy(writer, bytes.NewReader(originalTar)); err != nil {
+				t.Fatal(err)
+			}
+			
+			// Close the writer to flush all compressed data
+			if err := writer.Close(); err != nil {
 				t.Fatal(err)
 			}
 
@@ -174,8 +180,19 @@ func TestDecompressionWithDifferentImplementations(t *testing.T) {
 						t.Error("Decompressed data doesn't match original tar")
 					}
 
-					// Test ParseTOC method
-					tocData, parsedDigest, err := decompressor.ParseTOC(bytes.NewReader(compressedData))
+					// First, parse the footer to get TOC location
+					if len(compressedData) < int(decompressor.FooterSize()) {
+						t.Fatal("compressed data too small to contain footer")
+					}
+					footerData := compressedData[len(compressedData)-int(decompressor.FooterSize()):]
+					_, tocOffset, tocSize, err := decompressor.ParseFooter(footerData)
+					if err != nil {
+						t.Fatalf("Failed to parse footer: %v", err)
+					}
+
+					// Test ParseTOC method - need to seek to TOC offset
+					tocReader := bytes.NewReader(compressedData[tocOffset:tocOffset+tocSize])
+					tocData, parsedDigest, err := decompressor.ParseTOC(tocReader)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -193,15 +210,15 @@ func TestDecompressionWithDifferentImplementations(t *testing.T) {
 							len(tocData.Entries), len(testFiles))
 					}
 
-					// Test DecompressTOC method
-					tocReader, err := decompressor.DecompressTOC(bytes.NewReader(compressedData))
+					// Test DecompressTOC method - also needs to start at TOC offset
+					tocDecompressReader, err := decompressor.DecompressTOC(bytes.NewReader(compressedData[tocOffset:tocOffset+tocSize]))
 					if err != nil {
 						t.Fatal(err)
 					}
-					defer tocReader.Close()
+					defer tocDecompressReader.Close()
 
 					// Read and parse TOC JSON
-					tocJSON, err := io.ReadAll(tocReader)
+					tocJSON, err := io.ReadAll(tocDecompressReader)
 					if err != nil {
 						t.Fatal(err)
 					}

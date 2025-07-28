@@ -23,9 +23,8 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
-	github.com/valyala/gozstd v1.22.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 )
 
-replace github.com/containerd/stargz-snapshotter => github.com/GrigoryEvko/stargz-snapshotter v0.17.1
+replace github.com/containerd/stargz-snapshotter => ../
